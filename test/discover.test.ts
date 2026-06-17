@@ -137,6 +137,128 @@ describe("discoverModels", () => {
     expect(model.temperature).toBe(true);
   });
 
+  it("should not emit null limits for oMLX virtual models", async () => {
+    setupFetchRouter({
+      "/v1/models/status": {
+        ok: true,
+        body: {
+          models: [
+            {
+              id: "MarkItDown",
+              loaded: true,
+              model_type: "markitdown",
+              max_context_window: null,
+              max_tokens: null,
+              estimated_size: null,
+            },
+          ],
+        },
+      },
+      "/v1/models": {
+        ok: true,
+        body: {
+          object: "list",
+          data: [
+            {
+              id: "MarkItDown",
+              object: "model",
+              created: 1700000000,
+              owned_by: "omlx",
+              max_model_len: null,
+            },
+          ],
+        },
+      },
+    });
+
+    const config: Record<string, unknown> = {
+      provider: {
+        "omlx-local": {
+          npm: "@ai-sdk/openai-compatible",
+          options: {
+            baseURL: "http://localhost:8000/v1",
+            probe: "omlx",
+          },
+        },
+      },
+    };
+
+    await discoverModels(config);
+
+    const providers = config.provider as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const models = providers["omlx-local"].models as Record<
+      string,
+      Record<string, unknown>
+    >;
+
+    expect(models["MarkItDown"]).toBeDefined();
+    expect(models["MarkItDown"].limit).toBeUndefined();
+    expect(models["MarkItDown"].sizeBytes).toBeUndefined();
+  });
+
+  it("should not emit non-finite limits from probe metadata", async () => {
+    setupFetchRouter({
+      "/v1/models/status": {
+        ok: true,
+        body: {
+          models: [
+            {
+              id: "unstable-metadata",
+              loaded: true,
+              model_type: "llm",
+              max_context_window: Number.POSITIVE_INFINITY,
+              max_tokens: Number.NaN,
+              estimated_size: Number.NEGATIVE_INFINITY,
+            },
+          ],
+        },
+      },
+      "/v1/models": {
+        ok: true,
+        body: {
+          object: "list",
+          data: [
+            {
+              id: "unstable-metadata",
+              object: "model",
+              created: 1700000000,
+              owned_by: "omlx",
+            },
+          ],
+        },
+      },
+    });
+
+    const config: Record<string, unknown> = {
+      provider: {
+        "omlx-local": {
+          npm: "@ai-sdk/openai-compatible",
+          options: {
+            baseURL: "http://localhost:8000/v1",
+            probe: "omlx",
+          },
+        },
+      },
+    };
+
+    await discoverModels(config);
+
+    const providers = config.provider as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const models = providers["omlx-local"].models as Record<
+      string,
+      Record<string, unknown>
+    >;
+
+    expect(models["unstable-metadata"].limit).toBeUndefined();
+    expect(models["unstable-metadata"].sizeBytes).toBeUndefined();
+  });
+
   it("should not run probe when options.probe is not set", async () => {
     setupFetchRouter({
       "/v1/models": {

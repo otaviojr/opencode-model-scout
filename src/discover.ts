@@ -4,7 +4,7 @@ import type { ProbeContext, DetectedServer } from "./probes/index";
 import { extractModelOwner, formatModelName } from "./format";
 import { LOG_PREFIX } from "./constants";
 import { findMatch, type ModelsDevMeta } from "./models-dev";
-import { buildHeaders, probeFetch } from "./probes/util";
+import { buildHeaders, isFiniteNumber, probeFetch } from "./probes/util";
 
 /** Snapshot of what was discovered for a single provider. */
 export interface DiscoverySnapshot {
@@ -149,11 +149,11 @@ function applyProbeMeta(
   // rather than defaulting to 0 (which would mean "no output allowed").
   if (
     !model.limit &&
-    (meta.context !== undefined || meta.maxTokens !== undefined)
+    (isFiniteNumber(meta.context) || isFiniteNumber(meta.maxTokens))
   ) {
     const limit: Record<string, number> = {};
-    if (meta.context !== undefined) limit.context = meta.context;
-    if (meta.maxTokens !== undefined) limit.output = meta.maxTokens;
+    if (isFiniteNumber(meta.context)) limit.context = meta.context;
+    if (isFiniteNumber(meta.maxTokens)) limit.output = meta.maxTokens;
     model.limit = limit;
   }
 
@@ -187,7 +187,7 @@ function applyProbeMeta(
   // Probe-specific metadata (for display in /modelscout)
   if (meta.parameterSize) model.parameterSize = meta.parameterSize;
   if (meta.quantization) model.quantization = meta.quantization;
-  if (meta.sizeBytes !== undefined) model.sizeBytes = meta.sizeBytes;
+  if (isFiniteNumber(meta.sizeBytes)) model.sizeBytes = meta.sizeBytes;
 }
 
 /**

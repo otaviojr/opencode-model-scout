@@ -75,6 +75,53 @@ describe("probeOmlx", () => {
     expect(result).toEqual({ models: {} });
   });
 
+  it("should omit nullable numeric fields from oMLX virtual models", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        models: [
+          {
+            id: "MarkItDown",
+            loaded: true,
+            model_type: "markitdown",
+            max_context_window: null,
+            max_tokens: null,
+            estimated_size: null,
+          },
+        ],
+      }),
+    });
+
+    const result = await probeOmlx("http://localhost:8000");
+
+    expect(result.models["MarkItDown"]).toEqual({ loaded: true });
+  });
+
+  it("should omit non-finite numeric fields from probe metadata", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        models: [
+          {
+            id: "unstable-metadata",
+            loaded: true,
+            model_type: "llm",
+            max_context_window: Number.POSITIVE_INFINITY,
+            max_tokens: Number.NaN,
+            estimated_size: Number.NEGATIVE_INFINITY,
+          },
+        ],
+      }),
+    });
+
+    const result = await probeOmlx("http://localhost:8000");
+
+    expect(result.models["unstable-metadata"]).toEqual({
+      loaded: true,
+      modelType: "llm",
+    });
+  });
+
   it("should handle non-OK HTTP response", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

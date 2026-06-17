@@ -1,11 +1,17 @@
 import type { ProbeModelMeta, ProbeResult, ProviderProbe } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetch, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetch,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 /** A single model entry from Ollama's GET /api/tags response. */
 interface OllamaTagModel {
   name: string;
-  size: number;
+  size?: number | null;
   details?: {
     parameter_size?: string;
     family?: string;
@@ -38,8 +44,8 @@ function extractContextLength(
 ): number | undefined {
   for (const key of Object.keys(modelInfo)) {
     if (key.endsWith(".context_length")) {
-      const value = Number(modelInfo[key]);
-      return Number.isFinite(value) ? value : undefined;
+      const value = modelInfo[key];
+      return isFiniteNumber(value) ? value : undefined;
     }
   }
   return undefined;
@@ -67,9 +73,10 @@ export const probeOllama: ProviderProbe = async (
     // Build partial metadata from tags
     const tagModels = tagsData.models ?? [];
     for (const tag of tagModels) {
-      const meta: ProbeModelMeta = {
-        sizeBytes: tag.size,
-      };
+      const meta: ProbeModelMeta = {};
+      if (isFiniteNumber(tag.size)) {
+        meta.sizeBytes = tag.size;
+      }
       if (tag.details?.parameter_size) {
         meta.parameterSize = tag.details.parameter_size;
       }

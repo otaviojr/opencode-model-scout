@@ -4,7 +4,7 @@ import type {
   ProviderProbe,
   ProbeContext,
 } from "./types";
-import { EMPTY_RESULT } from "./util";
+import { EMPTY_RESULT, isFiniteNumber } from "./util";
 
 /**
  * Probe vLLM for model metadata from the /v1/models response.
@@ -23,7 +23,7 @@ export const probeVllm: ProviderProbe = (
   const models: Record<string, ProbeModelMeta> = {};
   for (const entry of entries) {
     const meta: ProbeModelMeta = {};
-    if (entry.max_model_len !== undefined) {
+    if (isFiniteNumber(entry.max_model_len)) {
       meta.context = entry.max_model_len;
     }
     models[entry.id] = meta;

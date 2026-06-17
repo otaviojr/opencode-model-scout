@@ -5,12 +5,17 @@ import type {
   ProbeContext,
 } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 interface TgiInfoResponse {
   model_id?: string;
-  max_total_tokens?: number;
-  max_input_tokens?: number;
+  max_total_tokens?: number | null;
+  max_input_tokens?: number | null;
   model_pipeline_tag?: string;
   router?: string;
   version?: string;
@@ -38,12 +43,12 @@ export const probeTgi: ProviderProbe = async (
 
     const meta: ProbeModelMeta = {};
 
-    if (info.max_total_tokens !== undefined) {
+    if (isFiniteNumber(info.max_total_tokens)) {
       meta.context = info.max_total_tokens;
     }
     if (
-      info.max_total_tokens !== undefined &&
-      info.max_input_tokens !== undefined
+      isFiniteNumber(info.max_total_tokens) &&
+      isFiniteNumber(info.max_input_tokens)
     ) {
       const diff = info.max_total_tokens - info.max_input_tokens;
       if (diff > 0) meta.maxTokens = diff;

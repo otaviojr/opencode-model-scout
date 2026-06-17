@@ -5,7 +5,12 @@ import type {
   ProbeContext,
 } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 interface LmStudioModel {
   key: string;
@@ -14,9 +19,9 @@ interface LmStudioModel {
   publisher?: string;
   architecture?: string;
   quantization?: { name?: string; bits_per_weight?: number };
-  size_bytes?: number;
+  size_bytes?: number | null;
   params_string?: string;
-  max_context_length?: number;
+  max_context_length?: number | null;
   format?: string;
   capabilities?: { vision?: boolean; trained_for_tool_use?: boolean };
   loaded_instances?: unknown[];
@@ -42,7 +47,7 @@ export const probeLmstudio: ProviderProbe = async (
     for (const entry of data) {
       const meta: ProbeModelMeta = {};
 
-      if (entry.max_context_length !== undefined) {
+      if (isFiniteNumber(entry.max_context_length)) {
         meta.context = entry.max_context_length;
       }
 
@@ -65,7 +70,7 @@ export const probeLmstudio: ProviderProbe = async (
       // Size info
       if (entry.params_string) meta.parameterSize = entry.params_string;
       if (entry.quantization?.name) meta.quantization = entry.quantization.name;
-      if (entry.size_bytes !== undefined) meta.sizeBytes = entry.size_bytes;
+      if (isFiniteNumber(entry.size_bytes)) meta.sizeBytes = entry.size_bytes;
 
       // Load state
       if (entry.loaded_instances && entry.loaded_instances.length > 0) {

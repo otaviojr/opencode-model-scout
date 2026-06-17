@@ -5,7 +5,12 @@ import type {
   ProbeContext,
 } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 interface KoboldVersionResponse {
   result?: string;
@@ -18,7 +23,7 @@ interface KoboldVersionResponse {
 }
 
 interface KoboldContextResponse {
-  value?: number;
+  value?: number | null;
 }
 
 export const probeKoboldcpp: ProviderProbe = async (
@@ -56,7 +61,7 @@ export const probeKoboldcpp: ProviderProbe = async (
       "KoboldCpp context probe",
       { headers },
     );
-    if (ctxData?.value !== undefined) {
+    if (isFiniteNumber(ctxData?.value)) {
       meta.context = ctxData.value;
     }
 

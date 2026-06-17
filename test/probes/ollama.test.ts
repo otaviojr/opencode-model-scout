@@ -234,6 +234,41 @@ describe("probeOllama", () => {
     expect(result.models["qwen3moe:30b"].context).toBe(40960);
   });
 
+  it("should omit nullable and blank context_length values", async () => {
+    setupOllamaMocks(
+      {
+        ok: true,
+        body: {
+          models: [
+            { name: "null-context", size: 4000000000 },
+            { name: "blank-context", size: 4000000000 },
+          ],
+        },
+      },
+      {
+        "null-context": {
+          ok: true,
+          body: {
+            model_info: { "llama.context_length": null },
+            capabilities: ["completion"],
+          },
+        },
+        "blank-context": {
+          ok: true,
+          body: {
+            model_info: { "llama.context_length": "" },
+            capabilities: ["completion"],
+          },
+        },
+      },
+    );
+
+    const result = await probeOllama("http://localhost:11434");
+
+    expect(result.models["null-context"].context).toBeUndefined();
+    expect(result.models["blank-context"].context).toBeUndefined();
+  });
+
   it("should handle empty model list", async () => {
     setupOllamaMocks({ ok: true, body: { models: [] } });
 

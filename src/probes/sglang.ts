@@ -5,7 +5,12 @@ import type {
   ProbeContext,
 } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 interface SglangModelInfoResponse {
   model_path?: string;
@@ -41,7 +46,7 @@ export const probeSglang: ProviderProbe = async (
 
     // Get context from modelsResponse max_model_len
     const entry = entries?.find((e) => e.id === modelId) ?? entries?.[0];
-    if (entry?.max_model_len !== undefined) {
+    if (isFiniteNumber(entry?.max_model_len)) {
       meta.context = entry.max_model_len;
     }
 

@@ -1,15 +1,20 @@
 import type { ProbeModelMeta, ProbeResult, ProviderProbe } from "./types";
 import { LOG_PREFIX } from "../constants";
-import { buildHeaders, probeFetchJson, EMPTY_RESULT } from "./util";
+import {
+  buildHeaders,
+  probeFetchJson,
+  EMPTY_RESULT,
+  isFiniteNumber,
+} from "./util";
 
 /** Status entry for a single model in the oMLX /v1/models/status response. */
 interface OmlxModelStatus {
   id: string;
   loaded: boolean;
   model_type?: string;
-  max_context_window?: number;
-  max_tokens?: number;
-  estimated_size?: number;
+  max_context_window?: number | null;
+  max_tokens?: number | null;
+  estimated_size?: number | null;
 }
 
 /** Shape of the oMLX /v1/models/status response body. */
@@ -40,13 +45,13 @@ export const probeOmlx: ProviderProbe = async (
         loaded: entry.loaded,
       };
 
-      if (entry.max_context_window !== undefined) {
+      if (isFiniteNumber(entry.max_context_window)) {
         meta.context = entry.max_context_window;
       }
-      if (entry.max_tokens !== undefined) {
+      if (isFiniteNumber(entry.max_tokens)) {
         meta.maxTokens = entry.max_tokens;
       }
-      if (entry.estimated_size !== undefined) {
+      if (isFiniteNumber(entry.estimated_size)) {
         meta.sizeBytes = entry.estimated_size;
       }
 

@@ -11,6 +11,11 @@ export function buildHeaders(apiKey?: string): Record<string, string> {
   return headers;
 }
 
+/** Runtime guard for numeric fields from untrusted provider JSON. */
+export function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 /**
  * Options for probeFetch.
  */

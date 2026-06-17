@@ -36,7 +36,7 @@ export interface OpenAIModelEntry {
   created: number;
   owned_by?: string;
   /** vLLM and SGLang add this non-standard field */
-  max_model_len?: number;
+  max_model_len?: number | null;
   /** vLLM adds the model path */
   root?: string;
   /** llama.cpp adds these non-standard fields */
