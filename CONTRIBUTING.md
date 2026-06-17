@@ -7,12 +7,13 @@ at startup. The source files are organized into four concerns:
 
 ```
 src/
-├── constants.ts          # Plugin name, log prefix, command name, sentinel
-├── index.ts              # Plugin entry point — hook registration
-├── discover.ts           # Core discovery engine — the pipeline orchestrator
+├── constants.ts          # Plugin name, log prefix, command name
+├── index.ts              # Server plugin entry — config-hook discovery
+├── tui.ts                # TUI plugin entry — /modelscout dialog command
+├── tui-models.ts         # TUI data layer — SDK provider/model → display rows + formatters
+├── discover.ts           # Core discovery engine — pipeline orchestrator + table formatter
 ├── models-dev.ts         # models.dev fallback matching
-├── command.ts            # /modelscout slash command handler
-├── format.ts             # Model name formatting utilities
+├── format.ts             # Model name + number/byte formatting utilities
 └── probes/
     ├── types.ts           # ProbeModelMeta, ProbeResult, ProviderProbe, ProbeContext
     ├── util.ts            # Shared utilities: buildHeaders, probeFetch, EMPTY_RESULT
@@ -68,10 +69,10 @@ sequenceDiagram
     DM-->>PI: Done
     PI-->>OC: Config enriched
 
-    Note over OC,PI: Later, during a session...
-    OC->>PI: command.execute.before
-    PI->>PI: handleCommand
-    PI-->>OC: Table or JSON output
+    Note over OC,PI: Later, in the TUI process...
+    OC->>PI: /modelscout (api.command.register onSelect)
+    PI->>PI: collectModelGroups(api.state.provider) + render dialog
+    PI-->>OC: api.ui.dialog (model table) — no model turn
 ```
 
 ### Enrichment Pipeline
@@ -588,11 +589,12 @@ curl -s http://localhost:11434/api/show \
 opencode-model-scout/
 ├── src/
 │   ├── constants.ts       # Single source of truth for all naming strings
-│   ├── index.ts            # Plugin entry — hooks only, no logic
-│   ├── discover.ts         # Pipeline orchestrator (largest file)
+│   ├── index.ts            # Server plugin entry — config-hook discovery
+│   ├── tui.ts              # TUI plugin entry — /modelscout dialog command
+│   ├── tui-models.ts       # TUI data layer — SDK models → rows + formatters
+│   ├── discover.ts         # Pipeline orchestrator + table formatter (largest file)
 │   ├── models-dev.ts       # models.dev index + matching
-│   ├── command.ts          # /modelscout output formatting
-│   ├── format.ts           # Model name prettification
+│   ├── format.ts           # Model name + number/byte prettification
 │   └── probes/
 │       ├── types.ts         # Shared types (ProbeModelMeta, ProbeContext)
 │       ├── util.ts          # Shared probe utilities
@@ -617,8 +619,10 @@ opencode-model-scout/
 │   │   ├── koboldcpp.test.ts
 │   │   └── util.test.ts
 │   ├── discover.test.ts
-│   ├── command.test.ts
 │   ├── format.test.ts
+│   ├── format-table.test.ts
+│   ├── tui.test.ts
+│   ├── tui-models.test.ts
 │   └── models-dev.test.ts
 ├── package.json
 ├── tsconfig.json
@@ -639,16 +643,13 @@ opencode-model-scout/
 
 ### Naming Convention
 
-All user-visible strings (plugin name, log prefix, command name, sentinel) are
-defined in `src/constants.ts`. If the plugin needs to be renamed, only that
-file changes:
+All user-visible strings (plugin name, log prefix, command name) are defined in
+`src/constants.ts`. If the plugin needs to be renamed, only that file changes:
 
 ```typescript
 export const PLUGIN_NAME = "opencode-model-scout";
 export const LOG_PREFIX = `[${PLUGIN_NAME}]`;
 export const COMMAND_NAME = "modelscout";
-export const COMMAND_TEMPLATE = `/${COMMAND_NAME}`;
-export const COMMAND_SENTINEL = `__${COMMAND_NAME.toUpperCase()}_COMMAND_HANDLED__`;
 ```
 
 ### Commit Style

@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { discoverModels, getDiscoveryStore } from "../src/discover";
-import { formatModelsTable } from "../src/command";
+import {
+  discoverModels,
+  getDiscoveryStore,
+  formatModelsTable,
+} from "../src/discover";
 import type { DiscoverySnapshot } from "../src/discover";
 
 /**

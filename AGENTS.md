@@ -5,16 +5,32 @@ opencode plugin: auto-discovers models from OpenAI-compatible providers, enriche
 ## Architecture
 
 ```
-src/index.ts       → Plugin entry, config hook with AbortSignal.timeout(5s)
-src/discover.ts    → Pipeline orchestrator, per-provider try-catch isolation
+src/index.ts       → Server plugin entry, config hook with AbortSignal.timeout(5s)
+src/tui.ts         → TUI plugin entry (TuiPluginModule): /modelscout slash command + dialog
+src/tui-models.ts  → TUI data layer: SDK provider/model → display rows (collectModelGroups)
+src/discover.ts    → Pipeline orchestrator, per-provider isolation, DiscoverySnapshot table formatter
 src/models-dev.ts  → models.dev fallback (reads XDG cache file directly)
-src/command.ts     → /modelscout slash command
+src/format.ts      → Pure formatters (model names, numbers/compact, bytes)
 src/constants.ts   → ALL naming centralized here (plugin name, log prefix, command)
 src/probes/        → Probe implementations, fingerprinting, shared utils
 ```
 
+The package ships **two entrypoints** discovered by opencode via `package.json`
+`exports`: `./server` → `dist/index.js` (the config-hook discovery plugin) and
+`./tui` → `dist/tui.js` (the slash-command dialog plugin, registered via
+`api.command.register`).
+`@opentui/{core,keymap,solid}` are **optional peer
+deps** (also devDeps for local build/typecheck) and are marked `--external` at
+compile time so the server path installs cleanly without them. They must be
+pinned to the version opencode ships (currently `0.3.4`): opencode injects its
+own `@opentui/*` into plugins at runtime, and a version skew breaks the dynamic
+import.
+
 ## Non-obvious Constraints
 
+- **Server vs TUI plugin config split**: opencode loads **server** plugins (`./server`) from the `plugin` array in `opencode.json`, but **TUI** plugins (`./tui`) from a _separate_ `plugin` array in `tui.json`. Listing the package only in `opencode.json` runs discovery but the `/modelscout` command never appears. `opencode plugin …` patches both files; manual installs must add both.
+- **Shipped runtime uses `api.command.register`, not `api.keymap.registerLayer`**: 1.17.7 only surfaces third-party plugin slash commands via the (deprecated-typed but wired) `api.command.register(cb)` with `{ slash: { name }, onSelect }`. `api.keymap.registerLayer` exists in the types but is not wired for external plugins (see issues #10262/#5305).
+- **TUI dialog layout**: `api.ui.dialog.replace(render)` content is wrapped by the host's centered, fixed-width `Dialog` panel. Return a _content-sized_ box (no `flexGrow`/`minHeight`) or it bleeds off-center; bound the scroll area with `maxHeight` from `api.renderer.terminalHeight`. `replace()` resets size to `"medium"`, so call `setSize("xlarge")` _after_ `replace`. Omit the stack entry `onClose` (the host pops the stack on esc; calling `clear()` from `onClose` recurses).
 - **Config hook deadlock**: `client.provider.list()` cannot be called during the config hook — it routes through opencode's in-process Hono server to `Provider.list()` which depends on `InstanceState` that blocks on config hook completion. Circular dependency. Read `$XDG_CACHE_HOME/opencode/models.json` directly instead (see `src/models-dev.ts`).
 - **Config is immutable after init**: No hot-reload. The config hook is the one shot to add models.
 - **`options.probe` not top-level**: opencode's `Config.Provider` uses `.strict()` (rejects unknown fields) but `options` uses `.catchall(z.any())`. Probe config must be inside `options`.

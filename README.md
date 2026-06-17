@@ -79,20 +79,41 @@ priority over models.dev guesses.
 
 ## Installation
 
-### From npm
-
-Using the opencode CLI (installs and patches `opencode.json` automatically):
+**The `opencode plugin` CLI is the recommended way to install in every case.**
+It reads the package manifest and registers the plugin in **both**
+`opencode.json` (the server plugin that runs model discovery) **and**
+`tui.json` (the TUI plugin that provides the `/modelscout` dialog) for you. The
+spec it accepts can be an npm name, a `github:` reference, or a local
+`file://` path:
 
 ```bash
+# From npm
 opencode plugin opencode-model-scout
+
+# From GitHub
+opencode plugin github:rmk40/opencode-model-scout
+
+# From a local checkout (development)
+opencode plugin file:///absolute/path/to/opencode-model-scout
 ```
 
-Or install with npm directly and add the plugin to your `opencode.json`
-manually:
+After installation, add provider configuration with the `probe` field — see
+[Configuration](#configuration) below.
 
-```bash
-npm install opencode-model-scout
-```
+> **Why two files?** opencode loads **server** plugins from the `plugin` array
+> in `opencode.json` and **TUI** plugins from a _separate_ `plugin` array in
+> `tui.json`. The server side drives startup model discovery; the TUI side
+> drives the `/modelscout` dialog. `opencode plugin …` writes both. If you
+> configure the plugin by hand, you **must** add it to both files or the
+> `/modelscout` command will not appear (see [Manual configuration](#manual-configuration)).
+
+### Manual configuration
+
+If you prefer to edit config by hand (or install the package yourself), add the
+plugin to **both** files. Use the same spec in each — an npm name, a `github:`
+reference, or a `file://` path:
+
+`~/.config/opencode/opencode.json` (server — model discovery):
 
 ```json
 {
@@ -100,34 +121,30 @@ npm install opencode-model-scout
 }
 ```
 
-After installation, add provider configuration with the `probe` field — see
-[Configuration](#configuration) below.
-
-### From GitHub
-
-```bash
-opencode plugin github:rmk40/opencode-model-scout
-```
-
-Or in `opencode.json`:
+`~/.config/opencode/tui.json` (TUI — the `/modelscout` dialog):
 
 ```json
 {
-  "plugin": ["github:rmk40/opencode-model-scout"]
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": ["opencode-model-scout"]
 }
 ```
 
-### From Source
+To install the package itself from npm before referencing it:
 
-For development or modification:
+```bash
+npm install opencode-model-scout
+```
+
+For a local checkout, clone and build first, then reference the directory with a
+`file://` path in both config files:
 
 ```bash
 git clone https://github.com/rmk40/opencode-model-scout.git
 cd opencode-model-scout
 npm install
+npm run compile
 ```
-
-Then in `opencode.json`:
 
 ```json
 {
@@ -274,42 +291,40 @@ providers to be guessed reliably.
 
 ## `/modelscout` Command
 
-Inspect what was discovered during startup:
+Inspect the discovered models in a TUI dialog:
 
 ```
-/modelscout           Show discovered models with metadata
-/modelscout --json    Show as JSON (for debugging or scripting)
+/modelscout    Open a dialog listing discovered models with metadata
 ```
 
-Example output:
+Selecting `/modelscout` from the slash autocomplete opens a scrollable dialog —
+it never sends a message to the model and never starts an assistant turn. Press
+**`esc`** to close it.
+
+Models are grouped by provider. Each model is shown on two compact lines: its id
+on the first, and a detail line with model type, context/output limits (compact,
+e.g. `ctx 262K`), on-disk size, capability flags (Vision, Tools, Reasoning), and
+provenance (family, parameter size, quantization). Example contents:
 
 ```
-Models Discovery
+Model Scout
 
-omlx (probe: omlx) — 7 models
-──────────────────────────────────────────────────
+oMLX (local) — 3 models
+  gemma-4-26b-a4b-it-4bit
+    vlm  ·  ctx 262K  ·  out 33K  ·  Vision Tools Reasoning  ·  gemma
+  GLM-4.7-Flash-MLX-8bit
+    llm  ·  ctx 203K  ·  out 33K  ·  Tools Reasoning
   qwen3-coder-next
-    Context: 262,144 | Output: 32,768 | Type: llm | Temp | Size: 43.9 GB
-
-  Qwen3.5-35B-MLX-mxfp4
-    Context: 262,144 | Output: 32,768 | Type: vlm | Vision, Temp | Size: 19.2 GB
-
-ollama (probe: ollama) — 3 models
-──────────────────────────────────────────────────
-  qwen3:0.6b
-    Context: 40,960 | Type: llm | Tools, Reasoning, Temp | Family: qwen3 | Params: 0.6B | Quant: Q4_K_M | Size: 480.5 MB
-
-  smollm2:135m
-    Type: llm | Temp | Params: 135M | Size: 98.8 MB
-
-  nomic-embed-text
-    Temp | Family: nomic | Params: 137M
-
-local (auto → vllm) — 2 models
-──────────────────────────────────────────────────
-  Qwen/Qwen3-8B
-    Context: 32,768 | Type: llm | Temp
+    llm  ·  ctx 262K  ·  out 33K  ·  43.8 GB  ·  Tools  ·  qwen 30B MXFP4
 ```
+
+> **Requires a TUI-capable opencode.** The command is registered through
+> opencode's TUI plugin command API; the model-discovery and enrichment that
+> happen at startup work everywhere, but on a host without the TUI plugin
+> runtime the `/modelscout` command simply does not appear. The dialog lists
+> every model from OpenAI-compatible/local providers in the merged config — it
+> does not separately label already-configured or skipped models, since that
+> discovery-only framing is not exposed to the TUI process.
 
 ## Timeouts and Resilience
 
