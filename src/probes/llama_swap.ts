@@ -62,6 +62,7 @@ export const probeLlamaSwap: ProviderProbe = async (
 
       if (isFiniteNumber(entry.context_length)) {
         meta.context = entry.context_length;
+        meta.maxTokens = 8192;
       }
 
       meta.modelType = "llm";

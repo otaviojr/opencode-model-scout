@@ -159,7 +159,6 @@ function applyProbeMeta(
     const limit: Record<string, number> = {};
     if (isFiniteNumber(meta.context)) limit.context = meta.context;
     if (isFiniteNumber(meta.maxTokens)) limit.output = meta.maxTokens;
-    else limit.output = 2000;
     model.limit = limit;
   }
 
