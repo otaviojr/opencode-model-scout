@@ -6,6 +6,7 @@ import { probeTgi } from "./tgi";
 import { probeSglang } from "./sglang";
 import { probeLmstudio } from "./lmstudio";
 import { probeKoboldcpp } from "./koboldcpp";
+import { probeLlamaSwap } from "./llama_swap";
 import { fingerprint, PROBE_MAP } from "./fingerprint";
 import type { DetectedServer } from "./fingerprint";
 
@@ -40,6 +41,7 @@ const PROBES = {
   sglang: probeSglang,
   lmstudio: probeLmstudio,
   koboldcpp: probeKoboldcpp,
+  llamaswap: probeLlamaSwap
 } as const satisfies Record<string, ProviderProbe>;
 
 /** Probe key derived from the registry — stays in sync automatically. */
