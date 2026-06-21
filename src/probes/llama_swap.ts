@@ -35,6 +35,11 @@ interface LlamaSwapModel {
   context_length?: number;
 }
 
+interface LlamaSwapModelsResponse {
+  object: string;
+  data: LlamaSwapModel[];
+}
+
 export const probeLlamaSwap: ProviderProbe = async (
   baseURL: string,
   apiKey?: string,
@@ -43,26 +48,24 @@ export const probeLlamaSwap: ProviderProbe = async (
   try {
     const headers = buildHeaders(apiKey);
 
-    const data = await probeFetchJson<LlamaSwapModel[]>(
+    const response = await probeFetchJson<LlamaSwapModelsResponse>(
       `${baseURL}/v1/models`,
       "llama-swap probe",
       { headers },
     );
-    if (!Array.isArray(data)) return EMPTY_RESULT;
+    if (!response?.data || !Array.isArray(response.data)) return EMPTY_RESULT;
 
     const models: Record<string, ProbeModelMeta> = {};
 
-    for (const entry of data) {
+    for (const entry of response.data) {
       const meta: ProbeModelMeta = {};
 
       if (isFiniteNumber(entry.context_length)) {
         meta.context = entry.context_length;
       }
 
-      // Model type
       meta.modelType = "llm";
 
-      // Capabilities
       if (entry.capabilities?.embedding) {
         meta.modelType = "embedding";
       }
@@ -78,7 +81,6 @@ export const probeLlamaSwap: ProviderProbe = async (
 
       meta.loaded = true;
 
-      // Use `key` as model identifier — this is what LM Studio uses
       models[entry.id] = meta;
     }
 
