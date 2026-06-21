@@ -23,7 +23,7 @@
     "dist"
   ],
   "scripts": {
-    "prepare": "husky || true && npm run compile",
+    "prepare": "[ -d .git ] && husky || true; [ -d src ] && npm run compile || true",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
