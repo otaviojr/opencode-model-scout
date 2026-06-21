@@ -41,7 +41,7 @@ const PROBES = {
   sglang: probeSglang,
   lmstudio: probeLmstudio,
   koboldcpp: probeKoboldcpp,
-  llamaswap: probeLlamaSwap
+  llamaswap: probeLlamaSwap,
 } as const satisfies Record<string, ProviderProbe>;
 
 /** Probe key derived from the registry — stays in sync automatically. */

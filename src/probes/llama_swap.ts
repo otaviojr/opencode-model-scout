@@ -12,7 +12,27 @@ import {
   isFiniteNumber,
 } from "./util";
 
+interface LlamaSwapArchitecture {
+  input_modalities: string[];
+  modality: string;
+  output_modalities: string[];
+}
+
+interface LlamaSwapCapabilities {
+  function_calling?: boolean;
+  vision?: boolean;
+  embedding?: boolean;
+}
+
 interface LlamaSwapModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by?: string;
+  architecture?: LlamaSwapArchitecture;
+  capabilities?: LlamaSwapCapabilities;
+  supported_parameters?: string[];
+  context_length?: number;
 }
 
 export const probeLlamaSwap: ProviderProbe = async (
@@ -23,7 +43,7 @@ export const probeLlamaSwap: ProviderProbe = async (
   try {
     const headers = buildHeaders(apiKey);
 
-    const data = await probeFetchJson<LmStudioModel[]>(
+    const data = await probeFetchJson<LlamaSwapModel[]>(
       `${baseURL}/v1/models`,
       "llama-swap probe",
       { headers },
@@ -51,13 +71,10 @@ export const probeLlamaSwap: ProviderProbe = async (
         meta.vision = true;
         meta.modelType = "vlm";
       }
-      
+
       if (entry.capabilities?.function_calling) {
         meta.toolCall = true;
       }
-
-      // Architecture → family
-      if (entry.architecture) meta.family = entry.architecture;
 
       meta.loaded = true;
 
