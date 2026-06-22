@@ -24,6 +24,12 @@ interface LlamaSwapCapabilities {
   embedding?: boolean;
 }
 
+interface LlamaSwapMeta {
+  llamaswap: {
+    max_tokens?: number;
+  };
+}
+
 interface LlamaSwapModel {
   id: string;
   object: string;
@@ -33,6 +39,7 @@ interface LlamaSwapModel {
   capabilities?: LlamaSwapCapabilities;
   supported_parameters?: string[];
   context_length?: number;
+  meta?: LlamaSwapMeta;
 }
 
 interface LlamaSwapModelsResponse {
@@ -62,6 +69,11 @@ export const probeLlamaSwap: ProviderProbe = async (
 
       if (isFiniteNumber(entry.context_length)) {
         meta.context = entry.context_length;
+      }
+
+      if (isFiniteNumber(entry.meta?.llamaswap.max_tokens)) {
+        meta.maxTokens = entry.meta.llamaswap.max_tokens;
+      } else {
         meta.maxTokens = 8192;
       }
 
